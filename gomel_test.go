@@ -11,9 +11,41 @@ func TestDuo(t *testing.T) {
 	if err != nil {
 		t.Fatal("lookup error:", err)
 	}
-	asStruct, ok := hit.(*types.Struct)
+	asStruct, ok := hit.Underlying().(*types.Struct)
 	if !ok {
-		t.Fatalf("got type %T from Find, want a struct", hit)
+		t.Fatalf("got underlying type %T from Find, want a struct", hit.Underlying())
+	}
+
+	l := LayoutOf(asStruct, &types.StdSizes{WordSize: 8, MaxAlign: 8})
+	if len(l.Fields) != 2 {
+		t.Fatalf("got %d fields, want 2", len(l.Fields))
+	}
+	a := l.Fields[0]
+	b := l.Fields[1]
+
+	if a.Name != "A" || b.Name != "B" {
+		t.Errorf("got field names %q and %q, want A and B",
+			a.Name, b.Name)
+	}
+	if a.StartPos != 0 || b.StartPos != 8 {
+		t.Errorf("got byte index %d and %d, want 0 and 8",
+			a.StartPos, b.StartPos)
+	}
+	if a.DataSize != 8 || b.DataSize != 8 {
+		t.Errorf("got byte size %d and %d, want 8 and 8",
+			a.DataSize, b.DataSize)
+	}
+}
+
+func TestGenericDuo(t *testing.T) {
+	hit, err := Find("github.com/pascaldekloe/gomel/internal/testset.GenericDuo", log.Default(),
+		"builtin.int64")
+	if err != nil {
+		t.Fatal("lookup error:", err)
+	}
+	asStruct, ok := hit.Underlying().(*types.Struct)
+	if !ok {
+		t.Fatalf("got underlying type %T from Find, want a struct", hit.Underlying())
 	}
 
 	l := LayoutOf(asStruct, &types.StdSizes{WordSize: 8, MaxAlign: 8})

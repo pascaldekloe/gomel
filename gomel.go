@@ -51,7 +51,34 @@ func LayoutOf(t *types.Struct, sizes types.Sizes) Layout {
 
 var ErrNotFound = errors.New("type not found")
 
-func Find(typeQuery string, report *log.Logger) (types.Type, error) {
+func Find(typeQuery string, report *log.Logger, genericTypeQueries ...string) (types.Type, error) {
+	mainType, err := find(typeQuery, report)
+	if err != nil {
+		return nil, err
+	}
+
+	// BUG(pascaldekloe):
+	//   The number of generic arguments is not verified yet.
+
+	if len(genericTypeQueries) == 0 {
+		return mainType, nil
+	}
+
+	genericTypes := make([]types.Type, len(genericTypeQueries))
+	for i := range genericTypes {
+		genericTypes[i], err = find(genericTypeQueries[i], report)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// BUG(pascaldekloe):
+	//   The generic argument types are not verified yet.
+
+	return types.Instantiate(types.NewContext(), mainType, genericTypes, true)
+}
+
+func find(typeQuery string, report *log.Logger) (types.Type, error) {
 	i := strings.LastIndexByte(typeQuery, '.')
 	if i < 0 {
 		return FindInPackage("builtin", typeQuery, report)
@@ -76,7 +103,7 @@ func FindInPackage(packageQuery, typeQuery string, report *log.Logger) (types.Ty
 		} else {
 			report.Printf("type %q found in package path %q",
 				typeQuery, p.PkgPath)
-			return hit.Type().Underlying(), nil
+			return hit.Type(), nil
 		}
 	}
 
