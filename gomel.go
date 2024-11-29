@@ -3,8 +3,9 @@ package gomel
 
 import (
 	"errors"
+	"fmt"
 	"go/types"
-	"log"
+	"slices"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
@@ -51,61 +52,128 @@ func LayoutOf(t *types.Struct, sizes types.Sizes) Layout {
 
 var ErrNotFound = errors.New("type not found")
 
-func Find(typeQuery string, report *log.Logger, genericTypeQueries ...string) (types.Type, error) {
-	mainType, err := find(typeQuery, report)
+type query struct {
+	pkg string
+	typ string
+}
+
+func parseQuery(s string) query {
+	i := strings.LastIndexByte(s, '.')
+	if i < 0 {
+		return query{
+			pkg: "builtin",
+			typ: s,
+		}
+	}
+	return query{
+		pkg: s[:i],
+		typ: s[i+1:],
+	}
+}
+
+func packagesOf(queries []query) []string {
+	var list []string
+	for i := range queries {
+		p := queries[i].pkg
+		if p != "builtin" && !slices.Contains(list, p) {
+			list = append(list, p)
+		}
+	}
+	return list
+}
+
+// Find returns a type match for the mainQuery with paramQueries for generics.
+func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
+	queries := make([]query, 1+len(paramQueries))
+	queries[0] = parseQuery(mainQuery)
+	for i := range paramQueries {
+		queries[i+1] = parseQuery(paramQueries[i])
+	}
+
+	// lookup
+	found, err := findTypes(queries)
 	if err != nil {
 		return nil, err
 	}
+	mainType, ok := found[0].(*types.Named)
+	if !ok {
+		return nil, fmt.Errorf("type %T found for %q not *types.Named",
+			found[0], mainQuery)
+	}
+	paramTypes := found[1:]
 
-	// BUG(pascaldekloe):
-	//   The number of generic arguments is not verified yet.
-
-	if len(genericTypeQueries) == 0 {
-		return mainType, nil
+	// pass non-generic type directly
+	generics := mainType.TypeParams()
+	if generics == nil {
+		// mainType is not generic
+		if len(paramQueries) == 0 {
+			return mainType.Underlying(), nil
+		}
+		return nil, fmt.Errorf("found non-generic type %s while queried with type parameters %q",
+			mainType, paramQueries)
 	}
 
-	genericTypes := make([]types.Type, len(genericTypeQueries))
-	for i := range genericTypes {
-		genericTypes[i], err = find(genericTypeQueries[i], report)
-		if err != nil {
-			return nil, err
+	// match the generic parameters with the types found
+	if n := generics.Len(); n != len(paramTypes) {
+		return nil, fmt.Errorf("type %s has %d generic parameters while queried with %q type parameters",
+			mainType, n, paramQueries)
+	}
+	for i, param := range paramTypes {
+		// remap to underlying of *types.Named entries
+		u := paramTypes[i].Underlying()
+		if u == types.Typ[types.Invalid] {
+			// should not happen ™️
+			return nil, fmt.Errorf("found invalid type %s as %T for query %q",
+				paramTypes[i], paramTypes[i], paramQueries[i])
+		}
+
+		// Underlying of types.TypeParam always returns an interface
+		constraint := generics.At(i).Underlying().(*types.Interface)
+		if !types.Satisfies(u, constraint) {
+			return nil, fmt.Errorf("generic parameter № %d type %s does not satisfy interface %s",
+				i+1, param, constraint)
 		}
 	}
 
-	// BUG(pascaldekloe):
-	//   The generic argument types are not verified yet.
-
-	return types.Instantiate(types.NewContext(), mainType, genericTypes, true)
-}
-
-func find(typeQuery string, report *log.Logger) (types.Type, error) {
-	i := strings.LastIndexByte(typeQuery, '.')
-	if i < 0 {
-		return FindInPackage("builtin", typeQuery, report)
+	resolved, err := types.Instantiate(types.NewContext(), mainType, paramTypes, false)
+	if err != nil {
+		return nil, err
 	}
-	return FindInPackage(typeQuery[:i], typeQuery[i+1:], report)
+	return resolved.Underlying(), nil
 }
 
-func FindInPackage(packageQuery, typeQuery string, report *log.Logger) (types.Type, error) {
+func findTypes(queries []query) ([]types.Type, error) {
 	config := packages.Config{
 		Mode: packages.NeedImports | packages.NeedExportFile | packages.NeedTypes | packages.NeedSyntax,
 	}
-	pkgs, err := packages.Load(&config, packageQuery)
+	loaded, err := packages.Load(&config, packagesOf(queries)...)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, p := range pkgs {
-		hit := p.Types.Scope().Lookup(typeQuery)
-		if hit == nil {
-			report.Printf("type %q not in package path %q",
-				typeQuery, p.PkgPath)
-		} else {
-			report.Printf("type %q found in package path %q",
-				typeQuery, p.PkgPath)
-			return hit.Type(), nil
+	found := make([]types.Type, len(queries))
+MapQuery:
+	for i := range queries {
+		if queries[i].pkg == "builtin" {
+			for _, basic := range types.Typ {
+				if basic.Name() == queries[i].typ {
+					found[i] = basic
+					continue MapQuery
+				}
+			}
+			return nil, fmt.Errorf("query %q does not match any of the basic types",
+				queries[i].typ)
 		}
-	}
 
-	return nil, ErrNotFound
+		for _, p := range loaded {
+			hit := p.Types.Scope().Lookup(queries[i].typ)
+			if hit != nil {
+				found[i] = hit.Type()
+				continue MapQuery
+			}
+		}
+		return nil, fmt.Errorf("type %q not in package %q",
+			queries[i].typ, queries[i].pkg)
+	}
+	return found, nil
 }

@@ -49,18 +49,18 @@ func main() {
 	if len(args) == 0 {
 		log.Fatal("gomel: need type argument, as in <package>.<type>")
 	}
-	hit, err := gomel.Find(args[0], verbose, args[1:]...)
+	hit, err := gomel.Find(args[0], args[1:]...)
 	if err != nil {
 		log.Fatal(err)
 	}
-	t := hit.Underlying()
-	verbose.Printf("found type %s (%T)",
-		hit, t)
+	verbose.Printf("found type %s as %T",
+		hit, hit)
 
-	asStruct, ok := t.(*types.Struct)
+	asStruct, ok := hit.(*types.Struct)
 	if !ok {
 		// TODO(pascaldekloe): deal with non-struct
-		log.Fatalf("gomel: type %s is not a struct", t)
+		log.Fatalf("gomel: type %s as %T is not a struct",
+			hit, hit)
 	}
 
 	l := gomel.LayoutOf(asStruct, sizes)

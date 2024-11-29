@@ -2,12 +2,12 @@ package gomel
 
 import (
 	"go/types"
-	"log"
+	"strings"
 	"testing"
 )
 
 func TestDuo(t *testing.T) {
-	hit, err := Find("github.com/pascaldekloe/gomel/internal/testset.Duo", log.Default())
+	hit, err := Find("github.com/pascaldekloe/gomel/internal/testset.Duo")
 	if err != nil {
 		t.Fatal("lookup error:", err)
 	}
@@ -38,7 +38,7 @@ func TestDuo(t *testing.T) {
 }
 
 func TestGenericDuo(t *testing.T) {
-	hit, err := Find("github.com/pascaldekloe/gomel/internal/testset.GenericDuo", log.Default(),
+	hit, err := Find("github.com/pascaldekloe/gomel/internal/testset.GenericDuo",
 		"builtin.int64")
 	if err != nil {
 		t.Fatal("lookup error:", err)
@@ -66,5 +66,39 @@ func TestGenericDuo(t *testing.T) {
 	if a.DataSize != 8 || b.DataSize != 8 {
 		t.Errorf("got byte size %d and %d, want 8 and 8",
 			a.DataSize, b.DataSize)
+	}
+}
+
+func TestFind_errors(t *testing.T) {
+	tests := []struct {
+		typeQ string
+		argQ  []string
+		want  string
+	}{
+		{
+			typeQ: "github.com/pascaldekloe/gomel/internal/testset.GenericDuo",
+			argQ:  []string{"builtin.int", "builtin.int"},
+			want:  `type github.com/pascaldekloe/gomel/internal/testset.GenericDuo[T int8 | int16 | int32 | int64] has 1 generic parameters while queried with ["builtin.int" "builtin.int"]`,
+		},
+
+		{
+			typeQ: "github.com/pascaldekloe/gomel/internal/testset.GenericDuo",
+			argQ:  []string{"builtin.bool"},
+			want:  "generic parameter № 1 type bool does not satisfy interface int8 | int16 | int32 | int64",
+		},
+	}
+
+	for _, test := range tests {
+		hit, err := Find(test.typeQ, test.argQ...)
+		if err == nil {
+			t.Errorf("lookup of %q with %q got %T, want error",
+				test.typeQ, test.argQ, hit)
+			continue
+		}
+		s := err.Error()
+		if !strings.Contains(s, test.want) {
+			t.Errorf("lookup of %q with %q got error %q, want %q included",
+				test.typeQ, test.argQ, s, test.want)
+		}
 	}
 }
