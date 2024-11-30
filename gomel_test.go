@@ -6,66 +6,71 @@ import (
 	"testing"
 )
 
-func TestDuo(t *testing.T) {
-	hit, err := Find("github.com/pascaldekloe/gomel/internal/testset.Duo")
-	if err != nil {
-		t.Fatal("lookup error:", err)
-	}
-	asStruct, ok := hit.Underlying().(*types.Struct)
-	if !ok {
-		t.Fatalf("got underlying type %T from Find, want a struct", hit.Underlying())
+func TestStructs(t *testing.T) {
+	target := types.StdSizes{WordSize: 8, MaxAlign: 8}
+	tests := []struct {
+		mainQ   string
+		paramsQ []string
+		fields  []Field
+	}{
+		{
+			mainQ: "github.com/pascaldekloe/gomel/internal/testset.Bytes",
+			fields: []Field{
+				{Name: "A", DataSize: 0, StartPos: 0},
+				{Name: "B", DataSize: 1, StartPos: 0},
+				{Name: "C", DataSize: 2, StartPos: 1},
+			},
+		},
+
+		{
+			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
+			paramsQ: []string{"int32"},
+			fields: []Field{
+				{Name: "A", DataSize: 4, StartPos: 0},
+				{Name: "B", DataSize: 4, StartPos: 4},
+			},
+		},
 	}
 
-	l := LayoutOf(asStruct, &types.StdSizes{WordSize: 8, MaxAlign: 8})
-	if len(l.Fields) != 2 {
-		t.Fatalf("got %d fields, want 2", len(l.Fields))
-	}
-	a := l.Fields[0]
-	b := l.Fields[1]
+	for _, test := range tests {
+		hit, err := Find(test.mainQ, test.paramsQ...)
+		if err != nil {
+			// no context; the error must be descriptive
+			t.Error("Find error:", err)
+			continue
+		}
 
-	if a.Name != "A" || b.Name != "B" {
-		t.Errorf("got field names %q and %q, want A and B",
-			a.Name, b.Name)
-	}
-	if a.StartPos != 0 || b.StartPos != 8 {
-		t.Errorf("got byte index %d and %d, want 0 and 8",
-			a.StartPos, b.StartPos)
-	}
-	if a.DataSize != 8 || b.DataSize != 8 {
-		t.Errorf("got byte size %d and %d, want 8 and 8",
-			a.DataSize, b.DataSize)
-	}
-}
+		asStruct, ok := hit.(*types.Struct)
+		if !ok {
+			t.Errorf("Find %q got type %T, want a *types.Struct",
+				test.main, hit)
+			continue
+		}
+		l := LayoutOf(asStruct, &target)
 
-func TestGenericDuo(t *testing.T) {
-	hit, err := Find("github.com/pascaldekloe/gomel/internal/testset.GenericDuo",
-		"builtin.int64")
-	if err != nil {
-		t.Fatal("lookup error:", err)
-	}
-	asStruct, ok := hit.Underlying().(*types.Struct)
-	if !ok {
-		t.Fatalf("got underlying type %T from Find, want a struct", hit.Underlying())
-	}
+		if len(l.Fields) != len(test.fields) {
+			t.Fatalf("Find %q got %d fields, want %d",
+				test.main, len(l.Fields), len(test.fields))
+			continue
+		}
+		for i := range l.Fields {
+			got, want := &l.Fields[i], &test.fields[i]
 
-	l := LayoutOf(asStruct, &types.StdSizes{WordSize: 8, MaxAlign: 8})
-	if len(l.Fields) != 2 {
-		t.Fatalf("got %d fields, want 2", len(l.Fields))
-	}
-	a := l.Fields[0]
-	b := l.Fields[1]
+			if got.Name != want.Name {
+				t.Errorf("Find %q got field %q, want field %q",
+					test.main, got.Name, want.Name)
+				continue
+			}
 
-	if a.Name != "A" || b.Name != "B" {
-		t.Errorf("got field names %q and %q, want A and B",
-			a.Name, b.Name)
-	}
-	if a.StartPos != 0 || b.StartPos != 8 {
-		t.Errorf("got byte index %d and %d, want 0 and 8",
-			a.StartPos, b.StartPos)
-	}
-	if a.DataSize != 8 || b.DataSize != 8 {
-		t.Errorf("got byte size %d and %d, want 8 and 8",
-			a.DataSize, b.DataSize)
+			if got.DataSize != want.DataSize {
+				t.Errorf("Find %q field %q got a %d B data size, want %d B",
+					test.main, got.Name, got.DataSize, want.DataSize)
+			}
+			if got.StartPos != want.StartPos {
+				t.Errorf("Find %q field %q got a %d B offset, want %d B",
+					test.main, got.Name, got.StartPos, want.StartPos)
+			}
+		}
 	}
 }
 
@@ -76,15 +81,15 @@ func TestFind_errors(t *testing.T) {
 		want  string
 	}{
 		{
-			typeQ: "github.com/pascaldekloe/gomel/internal/testset.GenericDuo",
-			argQ:  []string{"builtin.int", "builtin.int"},
-			want:  `type github.com/pascaldekloe/gomel/internal/testset.GenericDuo[T int8 | int16 | int32 | int64] has 1 generic parameters while queried with ["builtin.int" "builtin.int"]`,
+			typeQ: "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
+			argQ:  []string{"builtin.int64", "builtin.int64"},
+			want:  `type github.com/pascaldekloe/gomel/internal/testset.GenericInts[T int32 | int64] has 1 generic parameters while queried with ["builtin.int64" "builtin.int64"]`,
 		},
 
 		{
-			typeQ: "github.com/pascaldekloe/gomel/internal/testset.GenericDuo",
+			typeQ: "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
 			argQ:  []string{"builtin.bool"},
-			want:  "generic parameter № 1 type bool does not satisfy interface int8 | int16 | int32 | int64",
+			want:  "generic parameter № 1 type bool does not satisfy interface int32 | int64",
 		},
 	}
 
