@@ -144,7 +144,7 @@ func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
 
 func findTypes(queries []query) ([]types.Type, error) {
 	config := packages.Config{
-		Mode: packages.NeedImports | packages.NeedExportFile | packages.NeedTypes | packages.NeedSyntax,
+		Mode: packages.NeedImports | packages.NeedTypes,
 	}
 	loaded, err := packages.Load(&config, packagesOf(queries)...)
 	if err != nil {
