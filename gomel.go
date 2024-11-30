@@ -1,8 +1,7 @@
-// Package gomel provides insights about memory layout.
+// Package gomel provides type information with insights on Go's memory layout.
 package gomel
 
 import (
-	"errors"
 	"fmt"
 	"go/types"
 	"slices"
@@ -22,10 +21,11 @@ type Field struct {
 	Name     string // label in source code
 	DataType types.Type
 	DataSize int64 // number of bytes
-	StartPos int64 // index of first byte within struct
+	StartPos int64 // byte offset within struct
 }
 
-func LayoutOf(t *types.Struct, sizes types.Sizes) Layout {
+// LayoutOf reads the memory structure of t for a specific target.
+func LayoutOf(t *types.Struct, target types.Sizes) Layout {
 	fields := make([]*types.Var, t.NumFields())
 	for i := range fields {
 		fields[i] = t.Field(i)
@@ -35,7 +35,7 @@ func LayoutOf(t *types.Struct, sizes types.Sizes) Layout {
 		Fields:   make([]Field, len(fields)),
 	}
 
-	offsets := sizes.Offsetsof(fields)
+	offsets := target.Offsetsof(fields)
 	if len(offsets) != len(fields) {
 		panic("number of offsets doesn't match requested")
 	}
@@ -44,13 +44,11 @@ func LayoutOf(t *types.Struct, sizes types.Sizes) Layout {
 		f := &l.Fields[i]
 		f.Name = fields[i].Name()
 		f.DataType = fields[i].Type()
-		f.DataSize = sizes.Sizeof(f.DataType)
+		f.DataSize = target.Sizeof(f.DataType)
 		f.StartPos = offsets[i]
 	}
 	return l
 }
-
-var ErrNotFound = errors.New("type not found")
 
 type query struct {
 	pkg string
@@ -82,7 +80,8 @@ func packagesOf(queries []query) []string {
 	return list
 }
 
-// Find returns a type match for the mainQuery with paramQueries for generics.
+// Find returns a type match for mainQuery. Generic types also need paramQueries
+// for each type parameter respectively.
 func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
 	queries := make([]query, 1+len(paramQueries))
 	queries[0] = parseQuery(mainQuery)
