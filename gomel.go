@@ -2,6 +2,7 @@
 package gomel
 
 import (
+	"errors"
 	"fmt"
 	"go/types"
 	"slices"
@@ -80,8 +81,11 @@ func packagesOf(queries []query) []string {
 	return list
 }
 
-// Find returns a type match for mainQuery. Generic types also need paramQueries
-// for each type parameter respectively.
+// ErrNotFound signals lookup failure.
+var ErrNotFound = errors.New("no such type")
+
+// Find returns a type match for mainQuery or an ErrNotFound. Generic types also
+// need paramQueries for each type parameter.
 func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
 	queries := make([]query, 1+len(paramQueries))
 	queries[0] = parseQuery(mainQuery)
@@ -114,7 +118,7 @@ func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
 
 	// match the generic parameters with the types found
 	if n := generics.Len(); n != len(paramTypes) {
-		return nil, fmt.Errorf("type %s has %d generic parameters while queried with %q type parameters",
+		return nil, fmt.Errorf("type %s has %d generic parameters while queried with %q",
 			mainType, n, paramQueries)
 	}
 	for i, param := range paramTypes {
@@ -161,8 +165,8 @@ MapQuery:
 					continue MapQuery
 				}
 			}
-			return nil, fmt.Errorf("query %q does not match any of the basic types",
-				queries[i].typ)
+			return nil, fmt.Errorf("%w: %q does not match any of the basic types",
+				ErrNotFound, queries[i].typ)
 		}
 
 		for _, p := range loaded {
@@ -170,14 +174,21 @@ MapQuery:
 			if p.Types.Path() != queries[i].pkg {
 				continue
 			}
+
+			// Load returns non-existing packages with no Name
+			if p.Types.Name() == "" {
+				return nil, fmt.Errorf("%w: package %q for %q not found",
+					ErrNotFound, queries[i].pkg, queries[i].typ)
+			}
+
 			hit := p.Types.Scope().Lookup(queries[i].typ)
 			if hit != nil {
 				found[i] = hit.Type()
 				continue MapQuery
 			}
 		}
-		return nil, fmt.Errorf("type %q not in package %q",
-			queries[i].typ, queries[i].pkg)
+		return nil, fmt.Errorf("%w: %q not in package %q",
+			ErrNotFound, queries[i].typ, queries[i].pkg)
 	}
 	return found, nil
 }

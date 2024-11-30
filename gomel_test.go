@@ -2,7 +2,6 @@ package gomel
 
 import (
 	"go/types"
-	"strings"
 	"testing"
 )
 
@@ -99,34 +98,56 @@ func TestStructLayout(t *testing.T) {
 
 func TestFind_errors(t *testing.T) {
 	tests := []struct {
-		typeQ string
-		argQ  []string
-		want  string
+		mainQ   string
+		paramsQ []string
+		want    string
 	}{
+		// not found in package
 		{
-			typeQ: "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
-			argQ:  []string{"builtin.int64", "builtin.int64"},
-			want:  `type github.com/pascaldekloe/gomel/internal/testset.GenericInts[T int32 | int64] has 1 generic parameters while queried with ["builtin.int64" "builtin.int64"]`,
+			mainQ: "github.com/pascaldekloe/gomel.DoesNotExist",
+			want:  `no such type: "DoesNotExist" not in package "github.com/pascaldekloe/gomel"`,
+		}, {
+			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
+			paramsQ: []string{"github.com/pascaldekloe/gomel.DoesNotExist"},
+			want:    `no such type: "DoesNotExist" not in package "github.com/pascaldekloe/gomel"`,
+		}, {
+			mainQ: "github.com/pascaldekloe/gomel/doesnotexist.Arbitrary",
+			want:  `no such type: package "github.com/pascaldekloe/gomel/doesnotexist" for "Arbitrary" not found`,
+		}, {
+			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
+			paramsQ: []string{"github.com/pascaldekloe/gomel/doesnotexist.Arbitrary"},
+			want:    `no such type: package "github.com/pascaldekloe/gomel/doesnotexist" for "Arbitrary" not found`,
+		}, {
+			mainQ: "builtin.Unknown",
+			want:  `no such type: "Unknown" does not match any of the basic types`,
 		},
 
+		// generics mismatch
 		{
-			typeQ: "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
-			argQ:  []string{"builtin.bool"},
-			want:  "generic parameter № 1 type bool does not satisfy interface int32 | int64",
+			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
+			paramsQ: nil,
+			want:    `type github.com/pascaldekloe/gomel/internal/testset.GenericInts[T int32 | int64] has 1 generic parameters while queried with []`,
+		}, {
+			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
+			paramsQ: []string{"builtin.int64", "builtin.int64"},
+			want:    `type github.com/pascaldekloe/gomel/internal/testset.GenericInts[T int32 | int64] has 1 generic parameters while queried with ["builtin.int64" "builtin.int64"]`,
+		}, {
+			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
+			paramsQ: []string{"builtin.bool"},
+			want:    "generic parameter № 1 type bool does not satisfy interface int32 | int64",
 		},
 	}
 
 	for _, test := range tests {
-		hit, err := Find(test.typeQ, test.argQ...)
+		hit, err := Find(test.mainQ, test.paramsQ...)
 		if err == nil {
 			t.Errorf("lookup of %q with %q got %T, want error",
-				test.typeQ, test.argQ, hit)
+				test.mainQ, test.paramsQ, hit)
 			continue
 		}
-		s := err.Error()
-		if !strings.Contains(s, test.want) {
-			t.Errorf("lookup of %q with %q got error %q, want %q included",
-				test.typeQ, test.argQ, s, test.want)
+		if got := err.Error(); got != test.want {
+			t.Errorf("lookup of %q with %q got error %q, want %q",
+				test.mainQ, test.paramsQ, got, test.want)
 		}
 	}
 }
