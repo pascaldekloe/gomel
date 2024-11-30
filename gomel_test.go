@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestStructs(t *testing.T) {
+func TestStructLayout(t *testing.T) {
 	target := types.StdSizes{WordSize: 8, MaxAlign: 8}
 	tests := []struct {
 		mainQ   string
@@ -43,14 +43,14 @@ func TestStructs(t *testing.T) {
 		asStruct, ok := hit.(*types.Struct)
 		if !ok {
 			t.Errorf("Find %q got type %T, want a *types.Struct",
-				test.main, hit)
+				test.mainQ, hit)
 			continue
 		}
-		l := LayoutOf(asStruct, &target)
+		l := StructLayout(asStruct, &target)
 
 		if len(l.Fields) != len(test.fields) {
 			t.Fatalf("Find %q got %d fields, want %d",
-				test.main, len(l.Fields), len(test.fields))
+				test.mainQ, len(l.Fields), len(test.fields))
 			continue
 		}
 		for i := range l.Fields {
@@ -58,17 +58,17 @@ func TestStructs(t *testing.T) {
 
 			if got.Name != want.Name {
 				t.Errorf("Find %q got field %q, want field %q",
-					test.main, got.Name, want.Name)
+					test.mainQ, got.Name, want.Name)
 				continue
 			}
 
 			if got.DataSize != want.DataSize {
 				t.Errorf("Find %q field %q got a %d B data size, want %d B",
-					test.main, got.Name, got.DataSize, want.DataSize)
+					test.mainQ, got.Name, got.DataSize, want.DataSize)
 			}
 			if got.StartPos != want.StartPos {
 				t.Errorf("Find %q field %q got a %d B offset, want %d B",
-					test.main, got.Name, got.StartPos, want.StartPos)
+					test.mainQ, got.Name, got.StartPos, want.StartPos)
 			}
 		}
 	}

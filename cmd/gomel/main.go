@@ -63,7 +63,7 @@ func main() {
 			hit, hit)
 	}
 
-	l := gomel.LayoutOf(asStruct, sizes)
+	l := gomel.StructLayout(asStruct, sizes)
 	print(l, sizes)
 }
 

@@ -24,8 +24,8 @@ type Field struct {
 	StartPos int64 // byte offset within struct
 }
 
-// LayoutOf reads the memory structure of t for a specific target.
-func LayoutOf(t *types.Struct, target types.Sizes) Layout {
+// StructLayout reads the memory structure t for a specific target.
+func StructLayout(t *types.Struct, target types.Sizes) Layout {
 	fields := make([]*types.Var, t.NumFields())
 	for i := range fields {
 		fields[i] = t.Field(i)
