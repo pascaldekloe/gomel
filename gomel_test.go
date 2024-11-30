@@ -30,6 +30,29 @@ func TestStructLayout(t *testing.T) {
 				{Name: "B", DataSize: 4, StartPos: 4},
 			},
 		},
+
+		{
+			mainQ: "github.com/pascaldekloe/gomel/internal/testset.Nested",
+			fields: []Field{
+				{Name: "Sub", DataSize: 17, StartPos: 0},
+			},
+		},
+
+		{
+			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericNested",
+			paramsQ: []string{"github.com/pascaldekloe/gomel/internal/testset/other.Nested"},
+			fields: []Field{
+				{Name: "Sub", DataSize: 17, StartPos: 0},
+			},
+		},
+
+		{
+			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.InheritGeneric",
+			paramsQ: []string{"int64"},
+			fields: []Field{
+				{Name: "GenericInts", DataSize: 16, StartPos: 0},
+			},
+		},
 	}
 
 	for _, test := range tests {

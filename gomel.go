@@ -118,8 +118,8 @@ func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
 			mainType, n, paramQueries)
 	}
 	for i, param := range paramTypes {
-		// remap to underlying of *types.Named entries
-		u := paramTypes[i].Underlying()
+		t := paramTypes[i] // *types.Named
+		u := t.Underlying()
 		if u == types.Typ[types.Invalid] {
 			// should not happen ™️
 			return nil, fmt.Errorf("found invalid type %s as %T for query %q",
@@ -128,7 +128,8 @@ func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
 
 		// Underlying of types.TypeParam always returns an interface
 		constraint := generics.At(i).Underlying().(*types.Interface)
-		if !types.Satisfies(u, constraint) {
+		// interfaces can match types by name or by the underlying type
+		if !types.Satisfies(u, constraint) && !types.Satisfies(t, constraint) {
 			return nil, fmt.Errorf("generic parameter № %d type %s does not satisfy interface %s",
 				i+1, param, constraint)
 		}
@@ -165,6 +166,10 @@ MapQuery:
 		}
 
 		for _, p := range loaded {
+			// match type name in package
+			if p.Types.Path() != queries[i].pkg {
+				continue
+			}
 			hit := p.Types.Scope().Lookup(queries[i].typ)
 			if hit != nil {
 				found[i] = hit.Type()
