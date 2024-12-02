@@ -2,6 +2,7 @@ package gomel
 
 import (
 	"go/types"
+	"strings"
 	"testing"
 )
 
@@ -103,10 +104,15 @@ func TestStructLayout(t *testing.T) {
 	}
 }
 
-func TestFind_types(t *testing.T) {
+func TestFind_basic(t *testing.T) {
 	queries := []string{
 		"float32",
 		"string",
+		"builtin.string",
+
+		// alias type
+		"rune",
+		"builtin.rune",
 
 		"github.com/pascaldekloe/gomel/internal/testset.FloatAlias",
 	}
@@ -115,7 +121,7 @@ func TestFind_types(t *testing.T) {
 		switch {
 		case err != nil:
 			t.Errorf("Find %q got error: %s", q, err)
-		case hit.String() != q:
+		case hit.String() != strings.TrimPrefix(q, "builtin."):
 			t.Errorf("Find %q got %q", q, hit)
 		}
 	}
@@ -144,7 +150,7 @@ func TestFind_errors(t *testing.T) {
 			want:    `no such type: package "github.com/pascaldekloe/gomel/doesnotexist" for "Arbitrary" not found`,
 		}, {
 			mainQ: "builtin.Unknown",
-			want:  `no such type: "Unknown" does not match any of the basic types`,
+			want:  `no such type: "Unknown" not in universal scope`,
 		},
 
 		// generics mismatch

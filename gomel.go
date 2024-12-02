@@ -165,13 +165,12 @@ func findTypes(queries []query) ([]types.Type, error) {
 MapQuery:
 	for i := range queries {
 		if queries[i].pkg == "builtin" {
-			for _, basic := range types.Typ {
-				if basic.Name() == queries[i].typ {
-					found[i] = basic
-					continue MapQuery
-				}
+			hit := types.Universe.Lookup(queries[i].typ)
+			if hit != nil {
+				found[i] = hit.Type()
+				continue MapQuery
 			}
-			return nil, fmt.Errorf("%w: %q does not match any of the basic types",
+			return nil, fmt.Errorf("%w: %q not in universal scope",
 				ErrNotFound, queries[i].typ)
 		}
 
