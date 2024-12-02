@@ -98,44 +98,54 @@ func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	mainType, ok := found[0].(*types.Named)
-	if !ok {
-		return nil, fmt.Errorf("type %T found for %q not *types.Named",
-			found[0], mainQuery)
-	}
+	mainType := found[0]
 	paramTypes := found[1:]
 
-	// pass non-generic type directly
-	generics := mainType.TypeParams()
-	if generics == nil {
-		// mainType is not generic
-		if len(paramQueries) == 0 {
-			return mainType, nil
+	var generics *types.TypeParamList
+	switch t := mainType.(type) {
+	case *types.Named:
+		generics = t.TypeParams()
+	case *types.Signature:
+		generics = t.TypeParams()
+
+	default:
+		if len(paramTypes) != 0 {
+			return nil, fmt.Errorf("found %s while queried with %d type paramaters",
+				mainType, len(paramTypes))
 		}
-		return nil, fmt.Errorf("found non-generic type %s while queried with type parameters %q",
-			mainType, paramQueries)
+		return mainType, nil
 	}
 
-	// match the generic parameters with the types found
-	if n := generics.Len(); n != len(paramTypes) {
-		return nil, fmt.Errorf("type %s has %d generic parameters while queried with %q",
-			mainType, n, paramQueries)
+	// pass non-generic types as is
+	if generics == nil {
+		// mainType is not generic
+		if len(paramTypes) == 0 {
+			return mainType, nil
+		}
+		return nil, fmt.Errorf("found non-generic type %s while queried with %d type parameters",
+			mainType, len(paramTypes))
+	}
+
+	// match generics with the paramTypes found
+	if genericN, queryN := generics.Len(), len(paramTypes); genericN != queryN {
+		return nil, fmt.Errorf("found %s with %d type parameters while queried with %d",
+			mainType, genericN, queryN)
 	}
 	for i, param := range paramTypes {
 		t := paramTypes[i] // *types.Named
 		u := t.Underlying()
 		if u == types.Typ[types.Invalid] {
 			// should not happen ™️
-			return nil, fmt.Errorf("found invalid type %s as %T for query %q",
-				paramTypes[i], paramTypes[i], paramQueries[i])
+			return nil, fmt.Errorf("found invalid %s for paramameter query № %d",
+				paramTypes[i], i+1)
 		}
 
 		// Underlying of types.TypeParam always returns an interface
 		constraint := generics.At(i).Underlying().(*types.Interface)
 		// interfaces can match types by name or by the underlying type
 		if !types.Satisfies(u, constraint) && !types.Satisfies(t, constraint) {
-			return nil, fmt.Errorf("generic parameter № %d type %s does not satisfy interface %s",
-				i+1, param, constraint)
+			return nil, fmt.Errorf("found %s for parameter query № %d does not satisfy generic %s",
+				param, i+1, mainType)
 		}
 	}
 

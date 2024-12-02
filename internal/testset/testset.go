@@ -30,3 +30,6 @@ type GenericNested[T other.Nested | Bytes] struct {
 type InheritGeneric[T int32 | int64] struct {
 	GenericInts[T]
 }
+
+type BytesAlias Bytes
+type FloatAlias float32

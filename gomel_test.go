@@ -19,6 +19,13 @@ func TestStructLayout(t *testing.T) {
 				{Name: "B", DataSize: 1, StartPos: 0},
 				{Name: "C", DataSize: 2, StartPos: 1},
 			},
+		}, {
+			mainQ: "github.com/pascaldekloe/gomel/internal/testset.BytesAlias",
+			fields: []Field{
+				{Name: "A", DataSize: 0, StartPos: 0},
+				{Name: "B", DataSize: 1, StartPos: 0},
+				{Name: "C", DataSize: 2, StartPos: 1},
+			},
 		},
 
 		{
@@ -96,6 +103,24 @@ func TestStructLayout(t *testing.T) {
 	}
 }
 
+func TestFind_types(t *testing.T) {
+	queries := []string{
+		"float32",
+		"string",
+
+		"github.com/pascaldekloe/gomel/internal/testset.FloatAlias",
+	}
+	for _, q := range queries {
+		hit, err := Find(q)
+		switch {
+		case err != nil:
+			t.Errorf("Find %q got error: %s", q, err)
+		case hit.String() != q:
+			t.Errorf("Find %q got %q", q, hit)
+		}
+	}
+}
+
 func TestFind_errors(t *testing.T) {
 	tests := []struct {
 		mainQ   string
@@ -126,15 +151,15 @@ func TestFind_errors(t *testing.T) {
 		{
 			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
 			paramsQ: nil,
-			want:    `type github.com/pascaldekloe/gomel/internal/testset.GenericInts[T int32 | int64] has 1 generic parameters while queried with []`,
+			want:    `found github.com/pascaldekloe/gomel/internal/testset.GenericInts[T int32 | int64] with 1 type parameters while queried with 0`,
 		}, {
 			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
 			paramsQ: []string{"builtin.int64", "builtin.int64"},
-			want:    `type github.com/pascaldekloe/gomel/internal/testset.GenericInts[T int32 | int64] has 1 generic parameters while queried with ["builtin.int64" "builtin.int64"]`,
+			want:    `found github.com/pascaldekloe/gomel/internal/testset.GenericInts[T int32 | int64] with 1 type parameters while queried with 2`,
 		}, {
 			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
 			paramsQ: []string{"builtin.bool"},
-			want:    "generic parameter № 1 type bool does not satisfy interface int32 | int64",
+			want:    `found bool for parameter query № 1 does not satisfy generic github.com/pascaldekloe/gomel/internal/testset.GenericInts[T int32 | int64]`,
 		},
 	}
 
