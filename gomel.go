@@ -110,7 +110,7 @@ func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
 	if generics == nil {
 		// mainType is not generic
 		if len(paramQueries) == 0 {
-			return mainType.Underlying(), nil
+			return mainType, nil
 		}
 		return nil, fmt.Errorf("found non-generic type %s while queried with type parameters %q",
 			mainType, paramQueries)
@@ -139,11 +139,7 @@ func Find(mainQuery string, paramQueries ...string) (types.Type, error) {
 		}
 	}
 
-	resolved, err := types.Instantiate(types.NewContext(), mainType, paramTypes, false)
-	if err != nil {
-		return nil, err
-	}
-	return resolved.Underlying(), nil
+	return types.Instantiate(types.NewContext(), mainType, paramTypes, false)
 }
 
 func findTypes(queries []query) ([]types.Type, error) {

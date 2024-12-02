@@ -62,7 +62,7 @@ func TestStructLayout(t *testing.T) {
 			continue
 		}
 
-		asStruct, ok := hit.(*types.Struct)
+		asStruct, ok := hit.Underlying().(*types.Struct)
 		if !ok {
 			t.Errorf("Find %q got type %T, want a *types.Struct",
 				test.mainQ, hit)

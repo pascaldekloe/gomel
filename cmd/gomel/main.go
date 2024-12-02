@@ -56,7 +56,7 @@ func main() {
 	verbose.Printf("found type %s as %T",
 		hit, hit)
 
-	asStruct, ok := hit.(*types.Struct)
+	asStruct, ok := hit.Underlying().(*types.Struct)
 	if !ok {
 		// TODO(pascaldekloe): deal with non-struct
 		log.Fatalf("gomel: type %s as %T is not a struct",
