@@ -7,6 +7,9 @@ Gomel provides insights on the memory layout of data structures in Go. The
 gomel(1) command searches for types within a Go module, including all of its
 dependencies. The target architecture defaults to `go env GOARCH`.
 
+Run `go install github.com/pascaldekloe/gomel/cmd/gomel@latest` to build the
+command into the bin directory of `go env GOPATH`.
+
 For example, command `gomel net.TCPAddr` prints the following table. It shows
 how field Zone takes 16 bytes, starting at byte-index 32 within the struct.
 
