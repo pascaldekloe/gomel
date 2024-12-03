@@ -50,22 +50,22 @@ func main() {
 
 func print(l gomel.Layout, sizes types.Sizes) {
 	// header
-	fmt.Println("Name\tType\tSize\tStart")
+	fmt.Println("Name\tType\tSize\tOffset")
 
 	var pass int64
 	for i := range l.Fields {
 		f := &l.Fields[i]
 
-		if pass < f.StartPos {
+		if pass < f.Offset {
 			// padding between previous field
 			fmt.Printf("-\t-\t%d\t%d\t\n",
-				f.StartPos-pass, pass)
+				f.Offset-pass, pass)
 		}
 
 		fmt.Printf("%s\t%s\t%d\t%d\n",
-			f.Name, f.DataType, f.DataSize, f.StartPos)
+			f.Name, f.DataType, f.DataSize, f.Offset)
 
-		pass = f.StartPos + f.DataSize
+		pass = f.Offset + f.DataSize
 	}
 
 	remain := sizes.Sizeof(l.DataType) - pass

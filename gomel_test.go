@@ -16,16 +16,16 @@ func TestStructLayout(t *testing.T) {
 		{
 			mainQ: "github.com/pascaldekloe/gomel/internal/testset.Bytes",
 			fields: []Field{
-				{Name: "A", DataSize: 0, StartPos: 0},
-				{Name: "B", DataSize: 1, StartPos: 0},
-				{Name: "C", DataSize: 2, StartPos: 1},
+				{Name: "A", DataSize: 0, Offset: 0},
+				{Name: "B", DataSize: 1, Offset: 0},
+				{Name: "C", DataSize: 2, Offset: 1},
 			},
 		}, {
 			mainQ: "github.com/pascaldekloe/gomel/internal/testset.BytesAlias",
 			fields: []Field{
-				{Name: "A", DataSize: 0, StartPos: 0},
-				{Name: "B", DataSize: 1, StartPos: 0},
-				{Name: "C", DataSize: 2, StartPos: 1},
+				{Name: "A", DataSize: 0, Offset: 0},
+				{Name: "B", DataSize: 1, Offset: 0},
+				{Name: "C", DataSize: 2, Offset: 1},
 			},
 		},
 
@@ -33,15 +33,15 @@ func TestStructLayout(t *testing.T) {
 			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericInts",
 			paramsQ: []string{"int32"},
 			fields: []Field{
-				{Name: "A", DataSize: 4, StartPos: 0},
-				{Name: "B", DataSize: 4, StartPos: 4},
+				{Name: "A", DataSize: 4, Offset: 0},
+				{Name: "B", DataSize: 4, Offset: 4},
 			},
 		},
 
 		{
 			mainQ: "github.com/pascaldekloe/gomel/internal/testset.Nested",
 			fields: []Field{
-				{Name: "Sub", DataSize: 17, StartPos: 0},
+				{Name: "Sub", DataSize: 17, Offset: 0},
 			},
 		},
 
@@ -49,7 +49,7 @@ func TestStructLayout(t *testing.T) {
 			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.GenericNested",
 			paramsQ: []string{"github.com/pascaldekloe/gomel/internal/testset/other.Nested"},
 			fields: []Field{
-				{Name: "Sub", DataSize: 17, StartPos: 0},
+				{Name: "Sub", DataSize: 17, Offset: 0},
 			},
 		},
 
@@ -57,7 +57,7 @@ func TestStructLayout(t *testing.T) {
 			mainQ:   "github.com/pascaldekloe/gomel/internal/testset.InheritGeneric",
 			paramsQ: []string{"int64"},
 			fields: []Field{
-				{Name: "GenericInts", DataSize: 16, StartPos: 0},
+				{Name: "GenericInts", DataSize: 16, Offset: 0},
 			},
 		},
 	}
@@ -96,9 +96,9 @@ func TestStructLayout(t *testing.T) {
 				t.Errorf("Find %q field %q got a %d B data size, want %d B",
 					test.mainQ, got.Name, got.DataSize, want.DataSize)
 			}
-			if got.StartPos != want.StartPos {
+			if got.Offset != want.Offset {
 				t.Errorf("Find %q field %q got a %d B offset, want %d B",
-					test.mainQ, got.Name, got.StartPos, want.StartPos)
+					test.mainQ, got.Name, got.Offset, want.Offset)
 			}
 		}
 	}

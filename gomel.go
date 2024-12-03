@@ -19,10 +19,10 @@ type Layout struct {
 
 // Field defines memory from a struct member.
 type Field struct {
-	Name     string // label in source code
-	DataType types.Type
-	DataSize int64 // number of bytes
-	StartPos int64 // byte offset within struct
+	Name     string     // label from source code
+	DataType types.Type // payload classification
+	DataSize int64      // byte count of payload
+	Offset   int64      // byte count within struct
 }
 
 // StructLayout reads the memory structure t for a specific target.
@@ -46,7 +46,7 @@ func StructLayout(t *types.Struct, target types.Sizes) Layout {
 		f.Name = fields[i].Name()
 		f.DataType = fields[i].Type()
 		f.DataSize = target.Sizeof(f.DataType)
-		f.StartPos = offsets[i]
+		f.Offset = offsets[i]
 	}
 	return l
 }

@@ -8,10 +8,10 @@ For example, command `gomel net.TCPAddr` prints the following table. It shows
 how field Zone takes 16 bytes, starting at byte-index 32 within the struct.
 
 ```
-name	type	start	size
-IP	net.IP	0	24
-Port	int	24	8
-Zone	string	32	16
+Name	Type	Size	Offset
+IP	net.IP	24	0
+Port	int	8	24
+Zone	string	16	32
 ```
 
 Generic types need all of their type parameters specified with extra arguments.
@@ -20,10 +20,10 @@ how the first two fields have no size. The generic parameter (`float64`) has no
 effect on the outcome in this example.
 
 ```
-name	type	start	size
+Name	Type	Size	Offset
 _	[0]*float64	0	0
 _	sync/atomic.noCopy	0	0
-v	unsafe.Pointer	0	8
+v	unsafe.Pointer	8	0
 ```
 
 [Padding](https://en.wikipedia.org/wiki/Data_structure_alignment#Data_structure_padding)
