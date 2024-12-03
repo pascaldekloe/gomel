@@ -1,3 +1,6 @@
+[![API Documentation](https://godoc.org/github.com/pascaldekloe/gomel?status.svg)](https://godoc.org/github.com/pascaldekloe/gomel)
+[![Build Status](https://github.com/pascaldekloe/gomel/actions/workflows/go.yml/badge.svg)](https://github.com/pascaldekloe/gomel/actions/workflows/go.yml)
+
 # Gomel
 
 Gomel provides insights on the memory layout of data structures in Go. The
