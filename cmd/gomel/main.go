@@ -50,28 +50,28 @@ func main() {
 
 func print(l gomel.Layout, sizes types.Sizes) {
 	// header
-	fmt.Println("name\ttype\tstart\tsize")
+	fmt.Println("Name\tType\tSize\tStart")
 
 	var pass int64
 	for i := range l.Fields {
 		f := &l.Fields[i]
 
 		if pass < f.StartPos {
-			// last padded
+			// padding between previous field
 			fmt.Printf("-\t-\t%d\t%d\t\n",
-				pass, f.StartPos-pass)
+				f.StartPos-pass, pass)
 		}
 
 		fmt.Printf("%s\t%s\t%d\t%d\n",
-			f.Name, f.DataType, f.StartPos, f.DataSize)
+			f.Name, f.DataType, f.DataSize, f.StartPos)
 
 		pass = f.StartPos + f.DataSize
 	}
 
 	remain := sizes.Sizeof(l.DataType) - pass
 	if remain != 0 {
-		// end padded
+		// padding at struct end
 		fmt.Printf("-\t-\t%d\t%d\n",
-			pass, remain)
+			remain, pass)
 	}
 }
