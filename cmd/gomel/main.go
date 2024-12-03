@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"go/build"
 	"go/types"
-	"io"
 	"log"
-	"os"
-	"strings"
 
 	"github.com/pascaldekloe/gomel"
 )
@@ -16,26 +13,12 @@ import (
 var (
 	compFlag = flag.String("comp", build.Default.Compiler, "Select the applicable compiler by `name`.")
 	archFlag = flag.String("arch", build.Default.GOARCH, "Select the target architecture by `name`.")
-
-	quietFlag   = flag.Bool("quiet", false, "Disable standard reporting.")
-	verboseFlag = flag.Bool("verbose", false, "Enable detailed reporting.")
 )
 
 func main() {
 	flag.Parse()
 
-	// standard logging
-	if *quietFlag {
-		log.SetOutput(io.Discard)
-	}
 	log.SetFlags(0)
-
-	// detailed logging
-	verboseOut := io.Discard
-	if *verboseFlag {
-		verboseOut = os.Stderr
-	}
-	verbose := log.New(verboseOut, "gomel: ", 0)
 
 	// establish compilation target
 	sizes := types.SizesFor(*compFlag, *archFlag)
@@ -53,8 +36,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	verbose.Printf("found type %s as %T",
-		hit, hit)
 
 	asStruct, ok := hit.Underlying().(*types.Struct)
 	if !ok {
@@ -82,7 +63,7 @@ func print(l gomel.Layout, sizes types.Sizes) {
 		}
 
 		fmt.Printf("%s\t%s\t%d\t%d\n",
-			f.Name, typeName(f.DataType), f.StartPos, f.DataSize)
+			f.Name, f.DataType, f.StartPos, f.DataSize)
 
 		pass = f.StartPos + f.DataSize
 	}
@@ -93,16 +74,4 @@ func print(l gomel.Layout, sizes types.Sizes) {
 		fmt.Printf("-\t-\t%d\t%d\n",
 			pass, remain)
 	}
-}
-
-func typeName(t types.Type) string {
-	s := t.String()
-
-	// omit builtin package
-	i := strings.LastIndexByte(s, '.')
-	if s[:i+1] == "builtin." {
-		s = s[8:]
-	}
-
-	return s
 }
