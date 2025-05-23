@@ -21,15 +21,15 @@ Zone	string	16	32
 ```
 
 Generic types need all of their type parameters specified with extra arguments.
-The following table is the output from `gomel sync/atomic.Pointer float64`. Note
-how the first two fields have no size. The generic parameter (`float64`) has no
-effect on the outcome in this example.
+The following table is the output from `gomel -sep=spaces sync/atomic.Pointer
+float64`. Note how the first two fields have no size. The generic parameter
+(`float64`) has no effect on the outcome in this example.
 
 ```
-Name	Type	Size	Offset
-_	[0]*float64	0	0
-_	atomic.noCopy	0	0
-v	unsafe.Pointer	8	0
+Name Type           Size Offset
+_    [0]*float64    0    0
+_    atomic.noCopy  0    0
+v    unsafe.Pointer 8    0
 ```
 
 [Padding](https://en.wikipedia.org/wiki/Data_structure_alignment#Data_structure_padding)

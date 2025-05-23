@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"go/build"
 	"go/types"
+	"io"
 	"log"
+	"os"
+	"text/tabwriter"
 
 	"github.com/pascaldekloe/gomel"
 )
@@ -13,6 +16,8 @@ import (
 var (
 	compFlag = flag.String("comp", build.Default.Compiler, "Select the applicable compiler by `name`.")
 	archFlag = flag.String("arch", build.Default.GOARCH, "Select the target architecture by `name`.")
+
+	sepFlag = flag.String("sep", "tab", "Print output separated by either tab, spaces, or comma.")
 )
 
 func main() {
@@ -45,12 +50,29 @@ func main() {
 	}
 
 	l := gomel.StructLayout(asStruct, sizes)
-	print(l, sizes)
+
+	var w io.Writer = os.Stdout
+	var sep rune = '\t'
+	switch *sepFlag {
+	case "tab":
+		break
+	case "spaces":
+		tw := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+		defer tw.Flush()
+		w = tw
+	case "comma":
+		sep = ','
+	default:
+		log.Fatalf("gomel: unknown separator %q; need tab, spaces or comma",
+			*sepFlag)
+	}
+	print(w, l, sizes, sep)
 }
 
-func print(l gomel.Layout, sizes types.Sizes) {
+func print(w io.Writer, l gomel.Layout, sizes types.Sizes, sep rune) {
 	// header
-	fmt.Println("Name\tType\tSize\tOffset")
+	fmt.Fprintf(w, "Name%cType%cSize%cOffset\n",
+		sep, sep, sep)
 
 	var pass int64
 	for i := range l.Fields {
@@ -58,13 +80,13 @@ func print(l gomel.Layout, sizes types.Sizes) {
 
 		if pass < f.Offset {
 			// padding between previous field
-			fmt.Printf("-\t-\t%d\t%d\t\n",
-				f.Offset-pass, pass)
+			fmt.Fprintf(w, "-%c-%c%d%c%d\n",
+				sep, sep, f.Offset-pass, sep, pass)
 		}
 
 		typeName := types.TypeString(f.DataType, packageNameOnly)
-		fmt.Printf("%s\t%s\t%d\t%d\n",
-			f.Name, typeName, f.DataSize, f.Offset)
+		fmt.Fprintf(w, "%s%c%s%c%d%c%d\n",
+			f.Name, sep, typeName, sep, f.DataSize, sep, f.Offset)
 
 		pass = f.Offset + f.DataSize
 	}
@@ -72,8 +94,8 @@ func print(l gomel.Layout, sizes types.Sizes) {
 	remain := sizes.Sizeof(l.DataType) - pass
 	if remain != 0 {
 		// padding at struct end
-		fmt.Printf("-\t-\t%d\t%d\n",
-			remain, pass)
+		fmt.Fprintf(w, "-%c-%c%d%c%d\n",
+			sep, sep, remain, sep, pass)
 	}
 }
 
