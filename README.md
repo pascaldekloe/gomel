@@ -28,7 +28,7 @@ effect on the outcome in this example.
 ```
 Name	Type	Size	Offset
 _	[0]*float64	0	0
-_	sync/atomic.noCopy	0	0
+_	atomic.noCopy	0	0
 v	unsafe.Pointer	8	0
 ```
 

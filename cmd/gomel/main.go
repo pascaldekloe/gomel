@@ -62,8 +62,9 @@ func print(l gomel.Layout, sizes types.Sizes) {
 				f.Offset-pass, pass)
 		}
 
+		typeName := types.TypeString(f.DataType, packageNameOnly)
 		fmt.Printf("%s\t%s\t%d\t%d\n",
-			f.Name, f.DataType, f.DataSize, f.Offset)
+			f.Name, typeName, f.DataSize, f.Offset)
 
 		pass = f.Offset + f.DataSize
 	}
@@ -75,3 +76,6 @@ func print(l gomel.Layout, sizes types.Sizes) {
 			remain, pass)
 	}
 }
+
+// PackageNameOnly skips/trims the path component, if any.
+func packageNameOnly(p *types.Package) string { return p.Name() }
